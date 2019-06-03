@@ -1,0 +1,111 @@
+#---------------------------------------------------------------------
+# This file is created by Ansible. Do not edit it directly.
+#---------------------------------------------------------------------
+
+#---------------------------------------------------------------------
+# Global settings
+#---------------------------------------------------------------------
+global
+    log         127.0.0.1 local2 {{ haproxy_log_level }}
+
+    chroot      /var/lib/haproxy
+    pidfile     /var/run/haproxy.pid
+    maxconn     4000
+    user        haproxy
+    group       haproxy
+    daemon
+
+    # turn on stats unix socket
+    stats socket /var/lib/haproxy/stats
+
+#---------------------------------------------------------------------
+# Web-based stats
+#---------------------------------------------------------------------
+listen stats *:1936
+    mode http
+    log global
+
+    maxconn 10
+
+    timeout client  100s
+    timeout server  100s
+    timeout connect 100s
+    timeout queue   100s
+
+    stats enable
+    stats hide-version
+    stats refresh 30s
+    stats show-node
+    stats auth admin:admin
+    stats uri  /haproxy?stats
+
+#---------------------------------------------------------------------
+# common defaults that all the 'listen' and 'backend' sections will
+# use if not designated in their block
+#---------------------------------------------------------------------
+defaults
+    mode                    http
+    log                     global
+    option                  httplog
+    option                  dontlognull
+    option http-server-close
+    option forwardfor       except 127.0.0.0/8
+    option                  redispatch
+    retries                 3
+    timeout http-request    10s
+    timeout queue           1m
+    timeout connect         10s
+    timeout client          1m
+    timeout server          1m
+    timeout http-keep-alive 10s
+    timeout check           10s
+    maxconn                 3000
+
+{% for fe_idx in range(0, haproxy_frontends|count) %}
+{% set fe = haproxy_frontends[fe_idx] %}
+
+frontend {{ fe.name|default('fe' + fe_idx|string)}}
+    bind {{ fe.bind }}
+
+    # Define hosts
+    {% for r in fe.name_routes %}
+    acl host_{{ r.hostname }} hdr_sub(host) -i {{ r.hostname }}
+    {% endfor %}
+
+    # Path-based rules
+    {% for r in fe.name_routes %}
+    {% for p in r.path_rules %}
+    use_backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }} -m beg {{ p.path }}
+    {% endfor %}
+    {% endfor %}
+
+    # Host default targets
+    {% for r in fe.name_routes %}
+    use_backend host_{{ r.hostname }}_default if host_{{ r.hostname }}
+    {% endfor %}
+
+{% endfor %}
+
+{% for fe in haproxy_frontends %}
+{% for r in fe.name_routes %}
+
+{% for p in r.path_rules %}
+
+backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }}
+    balance leastconn
+    cookie JSESSIONID prefix
+    {% for t in p.targets %}
+    server {{ t.split(".")[0] }} {{ t }}
+    {% endfor %}
+
+{% endfor %}
+
+backend host_{{ r.hostname }}_default
+    balance leastconn
+    cookie JSESSIONID prefix
+    {% for t in r.default_targets %}
+    server {{ t.split(".")[0] }} {{ t }}
+    {% endfor %}
+
+{% endfor %}
+{% endfor %}

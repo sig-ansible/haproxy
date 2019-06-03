@@ -1,0 +1,23 @@
+---
+- hosts: all
+  become: yes
+  become_user: root
+
+  vars:
+    haproxy_frontends:
+      - bind: "*:8080"
+        name_routes:
+          - hostname: front1.domain.tld
+            default_targets:
+              - d1.domain.tld
+              - d2.domain.tld
+            path_rules:
+              - path: /path1
+                targets: [ target2.domain.tld ]
+              - path: /path2
+                targets:
+                  - target3.domain.tld
+                  - target4.domain.tld
+
+  roles:
+    - name: haproxy

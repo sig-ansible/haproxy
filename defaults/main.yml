@@ -1,0 +1,5 @@
+---
+# NB: IP management is not currently working
+haproxy_manage_ips: no
+haproxy_ip_range_index: 0
+haproxy_log_level: info

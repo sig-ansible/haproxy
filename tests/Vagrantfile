@@ -1,0 +1,25 @@
+# -*- mode: ruby -*-
+# vi: set ft=ruby :
+
+Vagrant.configure(2) do |config|
+  #config.vm.box = "bento/centos-6.7"
+  config.vm.box = "bento/centos-7.6"
+
+  config.vm.provider "virtualbox" do |vb|
+    # Customize the amount of memory on the VM:
+    vb.memory = "2048"
+
+    #vb.gui = true
+  end
+
+  config.vm.network "forwarded_port", guest: 8888, host: 8888
+  # config.vm.synced_folder "artifacts", "/mnt/artifacts"
+
+  # Run Ansible
+  config.vm.provision "ansible" do |ansible|
+    ansible.playbook = "test.yml"
+    # ansible.tags = "debug"
+    # ansible.vault_password_file = "../../vault_from_env.sh"
+    # ansible.verbose = "vvv"
+  end
+end

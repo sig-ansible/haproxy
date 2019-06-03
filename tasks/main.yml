@@ -1,0 +1,24 @@
+---
+- include_tasks: "install_{{ ansible_pkg_mgr }}.yml"
+  tags: packages
+
+- include_tasks: "interfaces_{{ ansible_os_family }}.yml"
+  when: haproxy_manage_ips|bool
+
+- name: Configure HAProxy
+  template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    trim_blocks: yes
+    lstrip_blocks: yes
+    backup: yes
+    validate: /sbin/haproxy -c -V -f %s
+  notify: reload haproxy
+  tags: haproxy_conf
+
+- name: Configure rsyslog for haproxy logging
+  template:
+    src: rsyslog_haproxy.j2
+    dest: /etc/rsyslog.d/haproxy.conf
+  notify: restart rsyslog
+  tags: haproxy_conf
