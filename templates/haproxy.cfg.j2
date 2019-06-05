@@ -6,6 +6,11 @@
 # Global settings
 #---------------------------------------------------------------------
 global
+    {% if haproxy_ssl_server_verify %}
+    ssl-server-verify require
+    {% else %}
+    ssl-server-verify none
+    {% endif %}
     log         127.0.0.1 local2 {{ haproxy_log_level }}
 
     chroot      /var/lib/haproxy
@@ -21,7 +26,8 @@ global
 #---------------------------------------------------------------------
 # Web-based stats
 #---------------------------------------------------------------------
-listen stats *:1936
+listen stats
+    bind *:1936
     mode http
     log global
 
@@ -36,7 +42,7 @@ listen stats *:1936
     stats hide-version
     stats refresh 30s
     stats show-node
-    stats auth admin:admin
+    # stats auth admin:admin
     stats uri  /haproxy?stats
 
 #---------------------------------------------------------------------
@@ -48,24 +54,38 @@ defaults
     log                     global
     option                  httplog
     option                  dontlognull
-    option http-server-close
     option forwardfor       except 127.0.0.0/8
     option                  redispatch
+    {% if haproxy_default_option_http_server_close %}
+    option http-server-close
+    {% endif %}
+    {% if haproxy_default_cookie_conf %}
+    cookie {{ haproxy_default_cookie_conf }}
+    {% endif %}
     retries                 3
-    timeout http-request    10s
-    timeout queue           1m
-    timeout connect         10s
-    timeout client          1m
-    timeout server          1m
-    timeout http-keep-alive 10s
-    timeout check           10s
-    maxconn                 3000
+    timeout http-request    {{ haproxy_default_timeout_http_request }}
+    timeout queue           {{ haproxy_default_timeout_queue }}
+    timeout connect         {{ haproxy_default_timeout_connect }}
+    timeout client          {{ haproxy_default_timeout_client }}
+    timeout server          {{ haproxy_default_timeout_server }}
+    timeout http-keep-alive {{ haproxy_default_timeout_http_keep_alive }}
+    timeout check           {{ haproxy_default_timeout_check }}
+    maxconn                 {{ haproxy_default_maxconn }}
+
+{% for e in haproxy_default_extra %}
+    {{ e }}
+{% endfor %}
 
 {% for fe_idx in range(0, haproxy_frontends|count) %}
 {% set fe = haproxy_frontends[fe_idx] %}
 
 frontend {{ fe.name|default('fe' + fe_idx|string)}}
+    {% if fe.ssl|default(False) %}
+    bind {{ fe.bind }} ssl crt /etc/ssl/haproxy
+    reqadd X-Forwarded-Proto:\ https
+    {% else %}
     bind {{ fe.bind }}
+    {% endif %}
 
     # Define hosts
     {% for r in fe.name_routes %}
@@ -74,7 +94,7 @@ frontend {{ fe.name|default('fe' + fe_idx|string)}}
 
     # Path-based rules
     {% for r in fe.name_routes %}
-    {% for p in r.path_rules %}
+    {% for p in r.path_rules|default([]) %}
     use_backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }} -m beg {{ p.path }}
     {% endfor %}
     {% endfor %}
@@ -89,13 +109,18 @@ frontend {{ fe.name|default('fe' + fe_idx|string)}}
 {% for fe in haproxy_frontends %}
 {% for r in fe.name_routes %}
 
-{% for p in r.path_rules %}
+{% for p in r.path_rules|default([]) %}
+{% if p.target_ssl|default(False) %}
+  {% set server_ssl_opts = "ssl" %}
+{% else %}
+  {% set server_ssl_opts = "" %}
+{% endif %}
 
 backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }}
     balance leastconn
     cookie JSESSIONID prefix
     {% for t in p.targets %}
-    server {{ t.split(".")[0] }} {{ t }}
+    server {{ t.split(".")[0] }} {{ t }} {{ server_ssl_opts }} check
     {% endfor %}
 
 {% endfor %}

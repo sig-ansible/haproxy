@@ -13,8 +13,9 @@
               - d2.domain.tld
             path_rules:
               - path: /path1
-                targets: [ target2.domain.tld ]
+                targets: [ target2.domain.tld:8080 ]
               - path: /path2
+                target_ssl: yes
                 targets:
                   - target3.domain.tld
                   - target4.domain.tld
