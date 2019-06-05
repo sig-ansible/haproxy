@@ -37,6 +37,21 @@
     backup: yes
     validate: "{{ haproxy_bin_path }} -c -V -f %s"
   notify: reload haproxy
+  register: haproxy_conf_res
+  ignore_errors: yes
+  tags: haproxy_conf
+
+- name: Dump failed template to /root/latest_haproxy.conf
+  template:
+    src: haproxy.cfg.j2
+    dest: /root/latest_haproxy.conf
+    trim_blocks: yes
+    lstrip_blocks: yes
+  when: haproxy_conf_res.failed
+  tags: haproxy_conf
+
+- fail: msg="Configuration failed"
+  when: haproxy_conf_res.failed
   tags: haproxy_conf
 
 - name: Configure rsyslog for haproxy logging
