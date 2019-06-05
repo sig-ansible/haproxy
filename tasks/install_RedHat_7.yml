@@ -1,0 +1,13 @@
+---
+- name: Install haproxy 1.8
+  yum:
+    name:
+      - rh-haproxy18
+      - rh-haproxy18-haproxy-syspaths
+  tags: packages
+
+- name: Define variables
+  set_fact:
+    haproxy_conf_path: /etc/opt/rh/rh-haproxy18/haproxy/haproxy.cfg
+    haproxy_bin_path: /opt/rh/rh-haproxy18/root/usr/sbin/haproxy
+  tags: always
