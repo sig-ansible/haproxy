@@ -56,6 +56,7 @@ defaults
     option                  dontlognull
     option forwardfor       except 127.0.0.0/8
     option                  redispatch
+    balance                 {{ haproxy_default_balance }}
     {% if haproxy_default_option_http_server_close %}
     option http-server-close
     {% endif %}
@@ -106,30 +107,41 @@ frontend {{ fe.name|default('fe' + fe_idx|string)}}
 
 {% endfor %}
 
+{% macro backend(name) -%}
+backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }}
+    {% for t in p.targets %}
+    server {{ t.split(".")[0] }} {{ t }} {{ server_ssl_opts }} check
+    {% endfor %}
+{%- endmacro %}
+
 {% for fe in haproxy_frontends %}
 {% for r in fe.name_routes %}
 
 {% for p in r.path_rules|default([]) %}
-{% if p.target_ssl|default(False) %}
+{% if p.target_ssl|default(haproxy_backend_ssl) %}
   {% set server_ssl_opts = "ssl" %}
 {% else %}
   {% set server_ssl_opts = "" %}
 {% endif %}
 
 backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }}
-    balance leastconn
-    cookie JSESSIONID prefix
+    dynamic-cookie-key {{ (r.hostname + haproxy_dynamic_cookie_salt)|hash('md5') }}
     {% for t in p.targets %}
     server {{ t.split(".")[0] }} {{ t }} {{ server_ssl_opts }} check
     {% endfor %}
 
 {% endfor %}
 
+{% if r.default_target_ssl|default(haproxy_backend_ssl) %}
+  {% set server_ssl_opts = "ssl" %}
+{% else %}
+  {% set server_ssl_opts = "" %}
+{% endif %}
+
 backend host_{{ r.hostname }}_default
-    balance leastconn
-    cookie JSESSIONID prefix
+    dynamic-cookie-key {{ (r.hostname + haproxy_dynamic_cookie_salt)|hash('md5') }}
     {% for t in r.default_targets %}
-    server {{ t.split(".")[0] }} {{ t }}
+    server {{ t.split(".")[0] }} {{ t }} {{ server_ssl_opts }} check
     {% endfor %}
 
 {% endfor %}
