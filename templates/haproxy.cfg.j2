@@ -95,9 +95,9 @@ frontend {{ fe.name|default('fe' + fe_idx|string)}}
 
     # Path-based rules
     {% for r in fe.name_routes %}
-    {% for p in r.path_rules|default([]) %}
-    use_backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }} -m beg {{ p.path }}
-    {% endfor %}
+        {% for p in r.path_rules|default([]) %}
+    use_backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }} if host_{{ r.hostname }} { path -m beg {{ p.path }} }
+        {% endfor %}
     {% endfor %}
 
     # Host default targets
@@ -107,42 +107,32 @@ frontend {{ fe.name|default('fe' + fe_idx|string)}}
 
 {% endfor %}
 
-{% macro backend(name) -%}
-backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }}
-    {% for t in p.targets %}
+{% macro backend(name, ssl, targets) -%}
+    {% if ssl %}
+      {% set server_ssl_opts = "ssl" %}
+    {% else %}
+      {% set server_ssl_opts = "" %}
+    {% endif %}
+
+backend {{ name }}
+    {# TODO: Make backend cookies configuratble #}
+    cookie PERSIST_{{ name|hash('md5') }} insert indirect nocache dynamic
+    dynamic-cookie-key {{ (name + haproxy_dynamic_cookie_salt)|hash('md5') }}
+    {% for t in targets %}
     server {{ t.split(".")[0] }} {{ t }} {{ server_ssl_opts }} check
     {% endfor %}
 {%- endmacro %}
 
 {% for fe in haproxy_frontends %}
-{% for r in fe.name_routes %}
+    {% for r in fe.name_routes %}
+        {% for p in r.path_rules|default([]) %}
+            {{ backend("p_" + r.hostname + p.path|replace('/', '-'),
+                       p.target_ssl|default(haproxy_backend_ssl),
+                       p.targets) }}
+        {% endfor %}
 
-{% for p in r.path_rules|default([]) %}
-{% if p.target_ssl|default(haproxy_backend_ssl) %}
-  {% set server_ssl_opts = "ssl" %}
-{% else %}
-  {% set server_ssl_opts = "" %}
-{% endif %}
-
-backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }}
-    dynamic-cookie-key {{ (r.hostname + haproxy_dynamic_cookie_salt)|hash('md5') }}
-    {% for t in p.targets %}
-    server {{ t.split(".")[0] }} {{ t }} {{ server_ssl_opts }} check
+        {{ backend("host_" + r.hostname + "_default",
+                   r.default_target_ssl|default(haproxy_backend_ssl),
+                   r.default_targets) }}
     {% endfor %}
-
-{% endfor %}
-
-{% if r.default_target_ssl|default(haproxy_backend_ssl) %}
-  {% set server_ssl_opts = "ssl" %}
-{% else %}
-  {% set server_ssl_opts = "" %}
-{% endif %}
-
-backend host_{{ r.hostname }}_default
-    dynamic-cookie-key {{ (r.hostname + haproxy_dynamic_cookie_salt)|hash('md5') }}
-    {% for t in r.default_targets %}
-    server {{ t.split(".")[0] }} {{ t }} {{ server_ssl_opts }} check
-    {% endfor %}
-
-{% endfor %}
 {% endfor %}
