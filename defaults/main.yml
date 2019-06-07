@@ -5,6 +5,9 @@ haproxy_ip_range_index: 0
 haproxy_log_level: info
 haproxy_ssl_server_verify: no
 haproxy_backend_ssl: no
+haproxy_log_facility: local2
+haproxy_log_path: /var/log/haproxy.log
+haproxy_log_retain_days: 30
 
 haproxy_default_option_http_server_close: yes
 haproxy_default_timeout_http_request: 10s

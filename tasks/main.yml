@@ -19,6 +19,7 @@
     that:
       - haproxy_conf_path is defined
       - haproxy_bin_path is defined
+      - haproxy_logrotate_conf_path is defined
 
 - name: Create haproxy ssl directory
   file:
@@ -60,3 +61,8 @@
     dest: /etc/rsyslog.d/haproxy.conf
   notify: restart rsyslog
   tags: haproxy_conf
+
+- name: Configure log rotation
+  template:
+    src: haproxy_logrotate.j2
+    dest: "{{ haproxy_logrotate_conf_path }}"

@@ -10,4 +10,5 @@
   set_fact:
     haproxy_conf_path: /etc/opt/rh/rh-haproxy18/haproxy/haproxy.cfg
     haproxy_bin_path: /opt/rh/rh-haproxy18/root/usr/sbin/haproxy
+    haproxy_logrotate_conf_path: /etc/logrotate.d/rh-haproxy18-haproxy
   tags: always
