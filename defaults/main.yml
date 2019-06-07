@@ -8,6 +8,7 @@ haproxy_backend_ssl: no
 haproxy_log_facility: local2
 haproxy_log_path: /var/log/haproxy.log
 haproxy_log_retain_days: 30
+haproxy_frontend_https_redirect_default: yes
 
 haproxy_default_option_http_server_close: yes
 haproxy_default_timeout_http_request: 10s
