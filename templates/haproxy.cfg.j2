@@ -112,7 +112,10 @@ frontend {{ fe.name|default('fe' + fe_idx|string)}}
     # Path-based rules
     {% for r in name_routes %}
         {% for p in r.path_rules|default([]) %}
-    use_backend p_{{ r.hostname }}{{ p.path|replace('/', '-') }} if host_{{ r.hostname }} { path -m beg {{ p.path }} }
+            {% set paths = [ p.path ]|flatten %}
+            {% for path in paths %}
+    use_backend p_{{ r.hostname }}{{ paths[0]|replace('/', '-') }} if host_{{ r.hostname }} { path -m beg {{ path }} }
+            {% endfor %}
         {% endfor %}
     {% endfor %}
 
@@ -143,7 +146,8 @@ backend {{ name }}
     {% set name_routes = fe.name_routes|default([]) %}
     {% for r in name_routes %}
         {% for p in r.path_rules|default([]) %}
-            {{ backend("p_" + r.hostname + p.path|replace('/', '-'),
+            {% set paths = [ p.path ]|flatten %}
+            {{ backend("p_" + r.hostname + paths[0]|replace('/', '-'),
                        p.target_ssl|default(haproxy_backend_ssl),
                        p.targets) }}
         {% endfor %}
