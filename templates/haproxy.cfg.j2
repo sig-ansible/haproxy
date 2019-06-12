@@ -84,11 +84,14 @@ defaults
 
 frontend {{ fe.name|default('fe' + fe_idx|string)}}
     {% if fe.ssl|default(False) %}
-    bind {{ fe.bind }} ssl crt /etc/ssl/haproxy
+        {% set bind_ssl_opts = "ssl crt /etc/ssl/haproxy" %}
     reqadd X-Forwarded-Proto:\ https
     {% else %}
-    bind {{ fe.bind }}
+        {% set bind_ssl_opts = "" %}
     {% endif %}
+    {% for bind in [ fe.bind ]|flatten %}
+    bind {{ bind }} {{ bind_ssl_opts }}
+    {% endfor %}
 
     {% if https_redirect %}
     # HTTPS Redirect
