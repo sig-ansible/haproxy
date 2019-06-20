@@ -22,3 +22,5 @@ haproxy_default_maxconn: 3000
 haproxy_default_extra: []
 haproxy_default_cookie_conf: PROXY_PERSIST insert indirect nocache dynamic
 haproxy_default_balance: leastconn
+
+haproxy_dynamic_cookie_salt: "{{ ('sig-ansible.haproxy.' + ansible_machine_id)|hash('md5') }}"
