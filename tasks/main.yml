@@ -42,16 +42,17 @@
   ignore_errors: yes
   tags: haproxy_conf
 
-- name: Dump failed template to /root/latest_haproxy.conf
+- name: Dump failed template to /root/haproxy_failed.conf
   template:
     src: haproxy.cfg.j2
-    dest: /root/latest_haproxy.conf
+    dest: /root/haproxy_failed.conf
     trim_blocks: yes
     lstrip_blocks: yes
   when: haproxy_conf_res.failed
   tags: haproxy_conf
 
-- fail: msg="Configuration failed"
+- name: Abort if proxy configuration failed
+  fail: msg="Configuration failed"
   when: haproxy_conf_res.failed
   tags: haproxy_conf
 
