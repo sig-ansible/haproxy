@@ -137,7 +137,7 @@ backend {{ name }}
     {# TODO: Make backend cookies configuratble #}
     cookie PERSIST_{{ name|hash('md5') }} insert indirect nocache dynamic
     dynamic-cookie-key {{ (name + haproxy_dynamic_cookie_salt)|hash('md5') }}
-    {% for t in targets %}
+    {% for t in [ targets ]|flatten %}
     server {{ t.split(".")[0] }} {{ t }} {{ server_ssl_opts }} check
     {% endfor %}
 {%- endmacro %}
