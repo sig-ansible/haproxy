@@ -78,11 +78,12 @@ defaults
 {% endfor %}
 
 {% for fe_idx in range(0, haproxy_frontends|count) %}
-{% set fe = haproxy_frontends[fe_idx] %}
-{% set https_redirect = fe.https_redirect|default(haproxy_frontend_https_redirect_default) %}
-{% set name_routes = fe.name_routes|default([]) %}
+    {% set fe = haproxy_frontends[fe_idx] %}
+    {% set https_redirect = fe.https_redirect|default(haproxy_frontend_https_redirect_default) %}
+    {% set name_routes = fe.name_routes|default([]) %}
+    {% set fe_name = fe.name|default('fe' + fe_idx|string) %}
 
-frontend {{ fe.name|default('fe' + fe_idx|string)}}
+frontend {{ fe_name }}
     {% if fe.ssl|default(False) %}
         {% set bind_ssl_opts = "ssl crt /etc/ssl/haproxy" %}
     reqadd X-Forwarded-Proto:\ https
@@ -123,6 +124,9 @@ frontend {{ fe.name|default('fe' + fe_idx|string)}}
     {% for r in name_routes %}
     use_backend host_{{ r.hostname }}_default if host_{{ r.hostname }}
     {% endfor %}
+    {% if fe.default_targets|default([])|length > 0 %}
+    use_backend {{ fe_name }}_default
+    {% endif %}
 
 {% endfor %}
 
@@ -143,7 +147,10 @@ backend {{ name }}
 {%- endmacro %}
 
 {% for fe in haproxy_frontends %}
+    {# TODO: We're repeating ourselves here. Maybe we should consolidate into
+             a single loop over haproxy_frontends #}
     {% set name_routes = fe.name_routes|default([]) %}
+
     {% for r in name_routes %}
         {% for p in r.path_rules|default([]) %}
             {% set paths = [ p.path ]|flatten %}
@@ -156,4 +163,11 @@ backend {{ name }}
                    r.default_target_ssl|default(haproxy_backend_ssl),
                    r.default_targets) }}
     {% endfor %}
+    {% if fe.default_targets|default([])|length > 0 %}
+        {# TODO: This will break if fe.name is undefined. Again we should probably
+                 consolidate into a single loop. #}
+        {{ backend(fe.name + "_default",
+                   fe.default_target_ssl|default(haproxy_backend_ssl),
+                   fe.default_targets) }}
+    {% endif %}
 {% endfor %}
