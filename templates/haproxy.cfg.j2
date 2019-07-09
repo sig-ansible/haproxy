@@ -102,7 +102,7 @@ frontend {{ fe_name }}
         {% else %}
             {% set https_redirect_port_suffix = ":" + https_redirect_port|string %}
         {% endif %}
-    http-request redirect prefix https://%[req.hdr(Host)]{{ https_redirect_port_suffix }} drop-query if { ssl_fc,not }
+    http-request redirect prefix https://%[req.hdr(Host),regsub(:.*$,)]{{ https_redirect_port_suffix }} drop-query if { ssl_fc,not }
     {% endif %}
 
     # Define hosts
