@@ -86,7 +86,6 @@ defaults
 frontend {{ fe_name }}
     {% if fe.ssl|default(False) %}
         {% set bind_ssl_opts = "ssl crt /etc/ssl/haproxy" %}
-    reqadd X-Forwarded-Proto:\ https
     {% else %}
         {% set bind_ssl_opts = "" %}
     {% endif %}
@@ -103,6 +102,10 @@ frontend {{ fe_name }}
             {% set https_redirect_port_suffix = ":" + https_redirect_port|string %}
         {% endif %}
     http-request redirect prefix https://%[req.hdr(Host),regsub(:.*$,)]{{ https_redirect_port_suffix }} drop-query if { ssl_fc,not }
+    {% endif %}
+
+    {% if fe.ssl|default(False) %}
+        reqadd X-Forwarded-Proto:\ https
     {% endif %}
 
     # Define hosts
