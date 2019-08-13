@@ -105,13 +105,18 @@ frontend {{ fe_name }}
     {% endif %}
 
     {% if fe.ssl|default(False) %}
-        reqadd X-Forwarded-Proto:\ https
+    reqadd X-Forwarded-Proto:\ https
     {% endif %}
 
     # Define hosts
     {% for r in name_routes %}
     acl host_{{ r.hostname }} hdr_sub(host) -i {{ r.hostname }}
     {% endfor %}
+    {% if 'allow_from' in fe %}
+    # Limit access to these IPs
+    acl net_allow src {{fe.allow_from|join(' ')}}
+    block if !net_allow
+    {% endif %}
 
     # Path-based rules
     {% for r in name_routes %}
