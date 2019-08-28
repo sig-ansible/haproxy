@@ -67,3 +67,10 @@
   template:
     src: haproxy_logrotate.j2
     dest: "{{ haproxy_logrotate_conf_path }}"
+
+- name: Enable & Start HAProxy Service
+  service:
+    name: haproxy
+    state: started
+    enabled: yes
+  tags: haproxy_conf
