@@ -130,7 +130,7 @@ frontend {{ fe_name }}
 
     # Host default targets
     {% for r in name_routes %}
-    use_backend host_{{ r.hostname }}_default if host_{{ r.hostname }}
+    use_backend host_{{ r.hostname }}_default_{{ fe_name }} if host_{{ r.hostname }}
     {% endfor %}
     {% if fe.default_targets|default([])|length > 0 %}
     use_backend {{ fe_name }}_default
@@ -167,7 +167,7 @@ backend {{ name }}
                        p.targets) }}
         {% endfor %}
 
-        {{ backend("host_" + r.hostname + "_default",
+        {{ backend("host_" + r.hostname + "_default_" + fe.name,
                    r.default_target_ssl|default(haproxy_backend_ssl),
                    r.default_targets) }}
     {% endfor %}
