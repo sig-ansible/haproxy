@@ -74,3 +74,10 @@
     state: started
     enabled: yes
   tags: haproxy_conf
+
+- name: Set ephemeral port range
+  sysctl:
+    name: net.ipv4.ip_local_port_range
+    value: "{{ haproxY_local_port_range_start }} {{ haproxY_local_port_range_end }}"
+  when: haproxy_manage_local_port_range
+  tags: haproxy_conf

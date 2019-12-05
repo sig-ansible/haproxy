@@ -24,3 +24,9 @@ haproxy_default_cookie_conf: PROXY_PERSIST insert indirect nocache dynamic
 haproxy_default_balance: leastconn
 
 haproxy_dynamic_cookie_salt: "{{ ('sig-ansible.haproxy.' + ansible_machine_id)|hash('md5') }}"
+
+# You may need to adjust these if you run into ephemeral port exhaustion. If you
+# do then make sure the range you specify doesn't include any listening ports.
+haproxy_manage_local_port_range: no
+haproxY_local_port_range_start: 9999
+haproxY_local_port_range_end: 65000
