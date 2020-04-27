@@ -1,0 +1,13 @@
+---
+  - name: Install haproxy
+    yum:
+      name:
+        - haproxy
+    tags: packages
+  
+  - name: Define variables
+    set_fact:
+      haproxy_conf_path: /etc/haproxy/haproxy.cfg
+      haproxy_bin_path: /usr/sbin/haproxy
+      haproxy_logrotate_conf_path: /etc/logrotate.d/haproxy
+    tags: always

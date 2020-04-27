@@ -5,7 +5,8 @@
 
   vars:
     haproxy_frontends:
-      - bind: "*:8080"
+      - name: frontend
+        bind: "*:8080"
         name_routes:
           - hostname: front1.domain.tld
             default_targets:
